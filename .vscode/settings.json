@@ -1,0 +1,22 @@
+{
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/firmware/build/compile_commands.json",
+  "cmake.sourceDirectory": "${workspaceFolder}/firmware",
+  "cmake.buildDirectory": "${workspaceFolder}/firmware/build",
+  "cmake.configureArgs": [
+    "-DCMAKE_TOOLCHAIN_FILE=${workspaceFolder}/firmware/cmake/gcc-arm-none-eabi.cmake"
+  ],
+  "cmake.generator": "Unix Makefiles",
+  "chat.tools.terminal.autoApprove": {
+    "dpkg": true,
+    "/^sudo apt-get install -y gdb-arm-none-eabi 2>/dev/null \\|\\| sudo apt-get install -y gdb-multiarch$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "gdb-multiarch": true
+  },
+  "cSpell.words": [
+    "microcontrollers"
+  ],
+  "clangd.arguments": ["--compile-commands-dir=${workspaceFolder}/firmware/build"]
+}

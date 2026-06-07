@@ -1,0 +1,156 @@
+{
+"module": {
+"name": "VSCP Blink",
+"copyright": "Grodans Paradis AB",
+"level": 0,
+"model": "A",
+"version": "0.0.01",
+"changed": "07/06/2026",
+"buffersize": 0
+,
+"description": [
+{"en": "This is the simplest possible demo of a VSCP node. It can do one thing, light a led, blink a led, turn a led off. The blink frequency can be set.  It has a decsion matrix with some actions like turn on/off led is defined."}
+
+],
+"manufacturer": {
+"name": "Grodans Paradis AB",
+"address": {
+"street": "Brattbergavägen 17",
+"city": "LOS",
+"town": "LOS",
+"region": "Hälsingland",
+"postcode": "82770",
+"state": "HA",
+"country": "Sweden"
+}
+}
+,
+"boot": {
+"algorithm": 0,
+"blocksize": 0,
+"blockcount": 0
+},
+"files": [
+{
+"picture": [
+]
+},
+{
+"video": [
+]
+},
+{
+"manual": [
+]
+},
+{
+"firmware": [
+]
+},
+{
+"driver": [
+]
+},
+{
+"setup": [
+]
+}
+]
+,
+"registers" : [
+{
+"name": "Zone",
+"page": 0,
+"offset": 0,
+"span": 1,
+"width": 8,
+"access": "rw",
+"type": "std",
+"default": "UNDEF",
+"min": 0,
+"max": 255,
+"fgcolor": "0x0",
+"bgcolor": "0xffffff"
+},
+{
+"name": "Subzone",
+"page": 0,
+"offset": 1,
+"span": 1,
+"width": 8,
+"access": "rw",
+"type": "std",
+"default": "UNDEF",
+"min": 0,
+"max": 255,
+"fgcolor": "0x0",
+"bgcolor": "0xffffff"
+},
+{
+"name": "Status",
+"page": 0,
+"offset": 2,
+"span": 1,
+"width": 8,
+"access": "rw",
+"type": "std",
+"default": "UNDEF",
+"min": 0,
+"max": 255,
+"fgcolor": "0x0",
+"bgcolor": "0xffffff"
+},
+{
+"name": "Control",
+"page": 0,
+"offset": 3,
+"span": 1,
+"width": 8,
+"access": "rw",
+"type": "std",
+"default": "UNDEF",
+"min": 0,
+"max": 255,
+"fgcolor": "0x0",
+"bgcolor": "0xffffff"
+},
+{
+"name": "Blink interval",
+"page": 0,
+"offset": 4,
+"span": 1,
+"width": 8,
+"access": "rw",
+"type": "std",
+"default": "UNDEF",
+"min": 0,
+"max": 255,
+"fgcolor": "0x0",
+"bgcolor": "0xffffff"
+}
+,{
+"name": "Decision Matrix",
+"page": 255,
+"offset": 0,
+"span": 24,
+"width": 8,
+"access": "rw",
+"type": "dmatrix1",
+"default": "UNDEF",
+"min": 0,
+"max": 255,
+"fgcolor": "0x0",
+"bgcolor": "0xffffff"
+}
+]
+,
+"remotevars": [
+]
+,
+"alarm": [
+]
+,
+"events": [
+]
+}
+}

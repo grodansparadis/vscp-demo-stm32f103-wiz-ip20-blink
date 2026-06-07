@@ -1,0 +1,49 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug STM32 (start OpenOCD)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "openocd",
+      "openOCDPath": "/usr/local/bin/openocd",
+      "gdbPath": "gdb-multiarch",
+      "executable": "${workspaceFolder}/firmware/build/firmware.elf",
+      "configFiles": [
+        "interface/stlink.cfg",
+        "target/stm32f1x.cfg"
+      ],
+      "searchDir": ["/usr/local/share/openocd/scripts"],
+      "svdFile": "${workspaceFolder}/STM32F103.svd",
+      "overrideResetCommands": ["monitor reset halt"],
+      "postLaunchCommands": ["tbreak main", "continue"],
+      "showDevDebugOutput": "none",
+    },
+    {
+      "name": "Debug STM32 (attach to running GDB server)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "external",
+      "gdbPath": "gdb-multiarch",
+      "gdbTarget": "localhost:3333",
+      "executable": "${workspaceFolder}/firmware/build/firmware.elf",
+      "svdFile": "${workspaceFolder}/STM32F103.svd",
+      "runToEntryPoint": "main",
+      "runToMain": true,
+      "preLaunchCommands": ["monitor reset halt"],
+      "showDevDebugOutput": "none",
+      "swoConfig": {
+        "enabled": true,
+        "cpuFrequency": 72000000,
+        "swoFrequency": 1000000,
+        "source": "probe",
+        "decoders": [
+          { "type": "console", "label": "ITM", "port": 0 }
+        ]
+      }
+    }
+  ]
+}
