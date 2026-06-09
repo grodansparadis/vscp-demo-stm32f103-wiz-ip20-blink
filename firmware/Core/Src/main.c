@@ -26,6 +26,8 @@
 /* USER CODE BEGIN Includes */
 #include <stdint.h>
 #include <string.h>
+#include <blinky.h>
+#include <flash_storage.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -64,6 +66,9 @@ static volatile uint16_t uart1_rx_head = 0; /* written by ISR/callback     */
 static volatile uint16_t uart1_rx_tail = 0; /* read  by main loop          */
 static uint8_t uart1_rx_byte;               /* single-byte DMA target      */
 
+node_persistent_config_t g_persistent;
+
+volatile uint32_t msTicks = 0U; /* incremented every 1 ms by TIM2 ISR */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -80,6 +85,8 @@ static int
 uart1_rx_scan(const char *needle);
 static void
 uart1_rx_consume_through(const char *needle);
+void
+setContextDefaults(ctx_t *pctx);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -374,6 +381,34 @@ uart1_rx_consume_through(const char *needle)
     }
   }
 }
+
+/*!
+  * @brief  Get the unique identifier (UID) for the device.
+  *
+  * The UID is a 12-byte value that uniquely identifies the device. In this
+  * implementation, we use a fixed UID for demonstration purposes. In a real
+  * implementation, you should generate a unique UID for each device, possibly
+  * using hardware-specific identifiers or random generation.
+  *
+  * @param  uid: Pointer to a 12-byte array where the UID will be stored.
+*/
+void
+getUid(uint8_t *uid)
+{
+  // For demonstration purposes, we use a fixed UID.
+  // In a real implementation, this should be unique for each device.
+  uint8_t fixed_uid[16] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                            0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F };
+  memcpy(uid, fixed_uid, 16);
+
+  uint32_t uid_words[3];
+
+  uid_words[0] = HAL_GetUIDw0(); // Words 0 (bits 31:0)
+  uid_words[1] = HAL_GetUIDw1(); // Words 1 (bits 63:32)
+  uid_words[2] = HAL_GetUIDw2(); // Words 2 (bits 95:64)
+  memcpy(uid, uid_words, 12);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -414,6 +449,11 @@ main(void)
   MX_TIM2_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+
+  /* Start TIM2 in interrupt mode — fires every 1 ms */
+  if (HAL_TIM_Base_Start_IT(&htim2) != HAL_OK) {
+    Error_Handler();
+  }
 
   // Debug print to indicate that the program has started
   printf("STM32F103 Wiznet IP20 VSCP blink demo starting\r\n");

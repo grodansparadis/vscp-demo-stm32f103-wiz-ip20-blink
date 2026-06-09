@@ -12,6 +12,37 @@ VSCP blink is the simplest possible VSCP application, toggling an LED on and off
 - [WIZ-IP20 Product Page](https://wiznet.io/products/serial-to-ethernet-modules/wiz-ip20)
 - [WIZnet S2E Tool GUI Getting Started Guide](https://github.com/Wiznet/WIZnet-S2E-Tool-GUI/wiki/Getting-started-guide_en)
 
+## Persistent Flash Storage
+
+2 KB of internal flash is reserved for persistent storage (registers, configuration) using the last two pages of the 32 KB flash:
+
+| Region  | Start        | End          | Size  | Pages |
+|---------|-------------|--------------|-------|-------|
+| Firmware | `0x08000000` | `0x080077FF` | 30 KB | 0–29  |
+| Storage  | `0x08007800` | `0x08007FFF` |  2 KB | 30–31 |
+
+The linker script ([STM32F103XX_FLASH.ld](firmware/STM32F103XX_FLASH.ld)) reduces the `FLASH` region to 30 KB and defines a separate `STORAGE` region. The driver is in [Core/Inc/flash_storage.h](firmware/Core/Inc/flash_storage.h) and [Core/Src/flash_storage.c](firmware/Core/Src/flash_storage.c).
+
+Key constraints:
+- A full page (1 KB) must be **erased** before any byte in it can be written
+- Writes are **16-bit (half-word)** aligned
+- Flash endurance: ~**10 000** erase cycles per page
+
+```c
+#include "flash_storage.h"
+
+// Erase both storage pages (required before first write)
+flash_storage_erase();
+
+// Write two half-words at offset 0
+uint16_t cfg[] = { 0x0001, 0x1234 };
+flash_storage_write(0, cfg, 2);
+
+// Read back
+uint16_t buf[2];
+flash_storage_read(0, buf, 2);
+```
+
 ### Setup
 - Connect the W5500 to the STM32F103C8T6 according to the following pinout:
   - W5500 SCK -> PA5

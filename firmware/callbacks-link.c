@@ -41,6 +41,8 @@
 #include <vscp-type.h>
 
 #include "main.h"
+#include "tim.h"
+#include "usart.h"
 
 #include <ctype.h>
 #include <stdint.h>
@@ -50,9 +52,6 @@
 
 // Global stuff
 extern node_persistent_config_t g_persistent;
-
-extern uint32_t
-time_us_32(void);
 
 // ****************************************************************************
 //                       VSCP Link protocol callbacks
@@ -72,7 +71,7 @@ vscp_link_callback_welcome(const void *pdata)
   // Get pointer to context
   ctx_t *pctx = (ctx_t *) pdata;
 
-  send(pctx->sock, TCPSRV_WELCOME_MSG, strlen(TCPSRV_WELCOME_MSG), 0);
+  HAL_UART_Transmit(&huart1, (uint8_t *) TCPSRV_WELCOME_MSG, strlen(TCPSRV_WELCOME_MSG), HAL_MAX_DELAY);  
   return VSCP_ERROR_SUCCESS;
 }
 
@@ -90,7 +89,7 @@ vscp_link_callback_write_client(const void *pdata, const char *msg)
   // Get pointer to context
   ctx_t *pctx = (ctx_t *) pdata;
 
-  send(pctx->sock, (uint8_t *) msg, strlen(msg), 0);
+  HAL_UART_Transmit(&huart1, (uint8_t *) msg, strlen(msg), HAL_MAX_DELAY);  
   return VSCP_ERROR_SUCCESS;
 }
 
@@ -109,7 +108,7 @@ vscp_link_callback_quit(const void *pdata)
   ctx_t *pctx = (ctx_t *) pdata;
 
   // Confirm quit
-  send(pctx->sock, VSCP_LINK_MSG_GOODBY, strlen(VSCP_LINK_MSG_GOODBY), 0);
+  HAL_UART_Transmit(&huart1, (uint8_t *) VSCP_LINK_MSG_GOODBY, strlen(VSCP_LINK_MSG_GOODBY), HAL_MAX_DELAY);
 
   // Disconnect from client
   shutdown(pctx->sock, 0);
@@ -136,7 +135,7 @@ vscp_link_callback_help(const void *pdata, const char *arg)
   // Get pointer to context
   ctx_t *pctx = (ctx_t *) pdata;
 
-  send(pctx->sock, VSCP_LINK_MSG_OK, strlen(VSCP_LINK_MSG_OK), 0);
+  HAL_UART_Transmit(&huart1, (uint8_t *) VSCP_LINK_MSG_OK, strlen(VSCP_LINK_MSG_OK), HAL_MAX_DELAY);
   return VSCP_ERROR_SUCCESS;
 }
 
@@ -237,7 +236,7 @@ vscp_link_callback_check_user(const void *pdata, const char *arg)
   strncpy(pctx->user, p, VSCP_LINK_MAX_USER_NAME_LENGTH);
   ESP_LOGI(TAG, "Username: %s\n", pctx->user);
 
-  send(pctx->sock, VSCP_LINK_MSG_USENAME_OK, strlen(VSCP_LINK_MSG_USENAME_OK), 0);
+  HAL_UART_Transmit(&huart1, (uint8_t *) VSCP_LINK_MSG_USENAME_OK, strlen(VSCP_LINK_MSG_USENAME_OK), HAL_MAX_DELAY);
   return VSCP_ERROR_SUCCESS;
 }
 
@@ -258,7 +257,7 @@ vscp_link_callback_check_password(const void *pdata, const char *arg)
 
   // Must have a username before a password
   if (!strlen(pctx->user)) {
-    send(pctx->sock, VSCP_LINK_MSG_NEED_USERNAME, strlen(VSCP_LINK_MSG_NEED_USERNAME), 0);
+    HAL_UART_Transmit(&huart1, (uint8_t *) VSCP_LINK_MSG_NEED_USERNAME, strlen(VSCP_LINK_MSG_NEED_USERNAME), HAL_MAX_DELAY);
     ESP_LOGE(TAG, "Password: No username yet\n");
     return VSCP_ERROR_SUCCESS;
   }
@@ -282,12 +281,12 @@ vscp_link_callback_check_password(const void *pdata, const char *arg)
     pctx->user[0]    = '\0';
     pctx->bValidated = false;
     pctx->privLevel  = 0;
-    send(pctx->sock, VSCP_LINK_MSG_PASSWORD_ERROR, strlen(VSCP_LINK_MSG_PASSWORD_ERROR), 0);
+    HAL_UART_Transmit(&huart1, (uint8_t *) VSCP_LINK_MSG_PASSWORD_ERROR, strlen(VSCP_LINK_MSG_PASSWORD_ERROR), HAL_MAX_DELAY);
     ESP_LOGE(TAG, "Credentials: Invalid\n");
     return VSCP_ERROR_SUCCESS;
   }
 
-  send(pctx->sock, VSCP_LINK_MSG_PASSWORD_OK, strlen(VSCP_LINK_MSG_PASSWORD_OK), 0);
+  HAL_UART_Transmit(&huart1, (uint8_t *) VSCP_LINK_MSG_PASSWORD_OK, strlen(VSCP_LINK_MSG_PASSWORD_OK), HAL_MAX_DELAY);
   return VSCP_ERROR_SUCCESS;
 }
 
@@ -340,7 +339,7 @@ vscp_link_callback_challenge(const void *pdata, const char *arg)
   buf[pos++] = '\n';
   buf[pos]   = '\0';
 
-  send(pctx->sock, buf, strlen(buf), 0);
+  HAL_UART_Transmit(&huart1, (uint8_t *) buf, strlen(buf), HAL_MAX_DELAY);
   return VSCP_ERROR_SUCCESS;
 }
 
@@ -400,7 +399,7 @@ vscp_link_callback_test(const void *pdata, const char *arg)
   // Get pointer to context
   ctx_t *pctx = (ctx_t *) pdata;
 
-  send(pctx->sock, VSCP_LINK_MSG_OK, strlen(VSCP_LINK_MSG_OK), 0);
+  HAL_UART_Transmit(&huart1, (uint8_t *) VSCP_LINK_MSG_OK, strlen(VSCP_LINK_MSG_OK), HAL_MAX_DELAY);
   return VSCP_ERROR_SUCCESS;
 }
 
@@ -904,6 +903,10 @@ vscp_link_callback_restart(const void *pdata)
   return VSCP_ERROR_SUCCESS;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// vscp_link_callback_bretr
+//
+
 int
 vscp_link_callback_bretr(const void *pdata)
 {
@@ -918,6 +921,10 @@ vscp_link_callback_bretr(const void *pdata)
   return VSCP_ERROR_SUCCESS;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// vscp_link_callback_bsend
+//
+
 int
 vscp_link_callback_bsend(const void *pdata)
 {
@@ -931,6 +938,10 @@ vscp_link_callback_bsend(const void *pdata)
 
   return VSCP_ERROR_SUCCESS;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// vscp_link_callback_sec
+//
 
 int
 vscp_link_callback_sec(const void *pdata)

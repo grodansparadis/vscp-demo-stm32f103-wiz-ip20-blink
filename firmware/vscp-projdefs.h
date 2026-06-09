@@ -61,17 +61,17 @@
 /*!
   Name of device for level II capabilities announcement event.
 */
-#define THIS_FIRMWARE_DEVICE_NAME "VSCP Wireless CAN Gateway"
+#define THIS_FIRMWARE_DEVICE_NAME "VSCP blinky tcp STM32F103 + Wiznet IP20"
 
 /**
  * If defined an UDP heartbeat is broadcasted every minute.
  */
-#define THIS_FIRMWARE_USE_UDP_ANNOUNCE
+//#define THIS_FIRMWARE_USE_UDP_ANNOUNCE
 
 /**
  * If defined a multicast heartbeat is broadcasted every minute.
  */
-#define THIS_FIRMWARE_USE_MULTICAST_ANNOUNCE
+//#define THIS_FIRMWARE_USE_MULTICAST_ANNOUNCE
 
 /**
  * Firmware version

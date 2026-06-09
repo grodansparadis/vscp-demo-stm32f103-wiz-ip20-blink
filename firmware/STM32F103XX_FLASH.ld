@@ -56,7 +56,8 @@ ENTRY(Reset_Handler)
 MEMORY
 {
 RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 10K
-FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 32K
+FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 30K
+STORAGE (r)     : ORIGIN = 0x08007800, LENGTH = 2K
 }
 
 /* Highest address of the user mode stack */
@@ -237,6 +238,14 @@ SECTIONS
   } >RAM
 
 
+
+  /* Persistent flash storage (last 2 pages, not loaded by startup) */
+  .storage (NOLOAD) :
+  {
+    _storage_start = .;
+    . = ORIGIN(STORAGE) + LENGTH(STORAGE);
+    _storage_end = .;
+  } >STORAGE
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

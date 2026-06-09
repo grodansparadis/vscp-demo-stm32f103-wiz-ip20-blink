@@ -214,6 +214,18 @@ void TIM2_IRQHandler(void)
 }
 
 /**
+  * @brief  TIM2 period-elapsed callback — fires every 1 ms.
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN TIM2_PeriodElapsedCallback 0 */
+  if (htim->Instance == TIM2) {
+    msTicks++;
+  }
+  /* USER CODE END TIM2_PeriodElapsedCallback 0 */
+}
+
+/**
   * @brief This function handles USART1 global interrupt.
   */
 void USART1_IRQHandler(void)
