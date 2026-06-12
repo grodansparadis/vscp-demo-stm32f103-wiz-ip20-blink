@@ -63,7 +63,7 @@ extern "C" {
 #define FLASH_STORAGE_BASE   0x08007800UL  /**< First address of storage area */
 #define FLASH_STORAGE_SIZE   0x00000800UL  /**< Total size: 2 KB              */
 #define FLASH_STORAGE_PAGES  2U            /**< Number of 1 KB pages reserved  */
-#define FLASH_PAGE_SIZE      0x00000400UL  /**< STM32F103 page size: 1 KB      */
+//#define FLASH_PAGE_SIZE      0x00000400UL  /**< STM32F103 page size: 1 KB      */
 
 /* ------------------------------------------------------------------ */
 /* Header (stored at offset 0)                                         */

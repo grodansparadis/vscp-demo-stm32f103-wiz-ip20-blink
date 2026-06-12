@@ -28,6 +28,12 @@
 #include <string.h>
 #include <blinky.h>
 #include <flash_storage.h>
+#include <vscp-fifo.h>
+#include <vscp-firmware-helper.h>
+#include <vscp-firmware-level2.h>
+#include <vscp-link-protocol.h>
+#include <vscp-binary-protocol.h>
+#include <vscp-link-protocol-callbacks.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,9 +72,106 @@ static volatile uint16_t uart1_rx_head = 0; /* written by ISR/callback     */
 static volatile uint16_t uart1_rx_tail = 0; /* read  by main loop          */
 static uint8_t uart1_rx_byte;               /* single-byte DMA target      */
 
+//----------------------------------------------------------------------------
+//                         VSCP Link Protocol
+//----------------------------------------------------------------------------
+
+/*
+  Connect callbacks in op table. This table is passed to the VSCP link protocol handler 
+  and defines the behavior for various operations.
+*/
+static const vscp_link_ops_t link_ops = {
+  /* ── Transport ──────────────────────────────────────────────── */
+  .write_client        = vscp_link_callback_write_client,
+  .disconnect          = vscp_link_callback_disconnect,
+  .quit                = vscp_link_callback_quit,
+  .welcome             = vscp_link_callback_welcome,
+
+  /* ── Authentication ─────────────────────────────────────────── */
+  .check_user          = vscp_link_callback_check_user,
+  .check_password      = vscp_link_callback_check_password,
+  .challenge           = vscp_link_callback_challenge,
+  .check_authenticated = vscp_link_callback_check_authenticated,
+  .check_privilege     = vscp_link_callback_check_privilege,
+
+  /* ── Event I/O ──────────────────────────────────────────────── */
+  .send                = vscp_link_callback_send,
+  .chkdata             = vscp_link_callback_chkData,
+  .clrall              = vscp_link_callback_clrall,
+  .retr                = vscp_link_callback_retr,
+  .rcvloop             = vscp_link_callback_rcvloop,
+  .enable_rcvloop      = vscp_link_callback_enable_rcvloop,
+  .get_rcvloop_status  = vscp_link_callback_get_rcvloop_status,
+
+  /* ── Node information ───────────────────────────────────────── */
+  .get_guid            = vscp_link_callback_get_guid,
+  .set_guid            = vscp_link_callback_set_guid,
+  .get_version         = vscp_link_callback_get_version,
+  .get_channel_id      = vscp_link_callback_get_channel_id,
+  .wcyd                = vscp_link_callback_wcyd,
+  .statistics          = vscp_link_callback_statistics,
+  .info                = vscp_link_callback_info,
+
+  /* ── Filter / buffer ────────────────────────────────────────── */
+  .set_filter          = vscp_link_callback_setFilter,
+  .set_mask            = vscp_link_callback_setMask,
+
+  /* ── Interfaces ─────────────────────────────────────────────── */
+  .get_interface_count = vscp_link_callback_get_interface_count,
+  .get_interface       = vscp_link_callback_get_interface,
+  .close_interface     = vscp_link_callback_close_interface,
+
+  /* ── Misc ────────────────────────────────────────────────────── */
+  .help_custom         = NULL, // OR vscp_link_callback_help,
+  .test                = vscp_link_callback_test,
+  .shutdown            = vscp_link_callback_shutdown,
+  .restart             = vscp_link_callback_restart,
+
+  /* ── Binary mode ─────────────────────────────────────────────── */
+  .binary              = NULL // vscp_link_callback_binary,
+};
+
+/* Context for each possible client connection  */
+static vscp_link_ctx_t ctx_link = {
+  .next              = NULL,
+  .ops               = &link_ops,
+  .id                = 0,
+  .sock              = 0,
+  .guid              = { 0 },
+  .user              = { 0 },
+  .fifoEventsIn      = { 0 },
+  .fifoEventsOut     = { 0 },
+  .bValidated        = 0,
+  .bRcvLoop          = 0,
+  .privLevel         = 0,
+  .filter            = { 0 },
+  .statistics        = { 0 },
+  .status            = { 0 },
+  .last_rcvloop_time = 0,
+  .user_data         = NULL,
+};
+
+//----------------------------------------------------------------------------
+//                         VSCP Binary Protocol
+//----------------------------------------------------------------------------
+
+/* Binary context for each possible client connection */
+static vscp_binary_ctx_t ctx_binary = { 0 };
+
+//----------------------------------------------------------------------------
+//                         VSCP Protocol
+//----------------------------------------------------------------------------
+
+/* Context for VSCP Level II protocol stack */
+static vscp_frmw2_firmware_context_t ctx_firmware = { 
+  .state = FRMW2_STATE_NONE,
+  .substate = 0,
+ };
+
 node_persistent_config_t g_persistent;
 
 volatile uint32_t msTicks = 0U; /* incremented every 1 ms by TIM2 ISR */
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -383,30 +486,154 @@ uart1_rx_consume_through(const char *needle)
 }
 
 /*!
-  * @brief  Get the unique identifier (UID) for the device.
-  *
-  * The UID is a 12-byte value that uniquely identifies the device. In this
-  * implementation, we use a fixed UID for demonstration purposes. In a real
-  * implementation, you should generate a unique UID for each device, possibly
-  * using hardware-specific identifiers or random generation.
-  *
-  * @param  uid: Pointer to a 12-byte array where the UID will be stored.
-*/
+ * @brief  Get the unique identifier (GUID) for the device.
+ *
+ * VSCP reserves a group of GUID's for MCU's with a built-in unique ID,
+ * where the GUID is constructed from a fixed prefix.
+ *
+ * One other possibility was to use the WIZnet's MAC address and the
+ * reserved GUID prefix to construct a GUID built here we use the unique
+ * MCU ID instead since it's guaranteed to be unique and doesn't require
+ * an extra step to read the MAC address from the WIZnet.
+ *
+ * More info on VSCP GUID construction for MCU-based devices here:
+ * https://grodansparadis.github.io/vscp-doc-spec/#/./vscp_globally_unique_identifiers
+ *
+ *This GUID is constructed like this
+ *
+ * FD:AA:BB:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY
+ *
+ * AA is a manufacturer code assigned by VSCP (02 for STMicroelectronics)
+ *
+ * BB is a device type code assigned by VSCP (01 for STM32)
+ *
+ * The 13 byte YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY:YY is something we can
+ * define freely as long as it's unique for each device. We can get 12 byte
+ * from the unique MCU ID using the HAL_GetUIDw0(), HAL_GetUIDw1(),
+ * and HAL_GetUIDw2() functions. Then we can set the last byte to zero.
+ *
+ * @param  pguid: Pointer to a 16-byte array where the GUID will be stored.
+ */
 void
-getUid(uint8_t *uid)
+setGUID(uint8_t *pguid)
 {
-  // For demonstration purposes, we use a fixed UID.
-  // In a real implementation, this should be unique for each device.
-  uint8_t fixed_uid[16] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-                            0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F };
-  memcpy(uid, fixed_uid, 16);
+  uint32_t uid;
 
-  uint32_t uid_words[3];
+  memset(pguid, 0, 16); /* Clear the GUID buffer */
+  pguid[0] = 0xFD;      /* VSCP reserved prefix for MCU-based GUIDs */
+  pguid[1] = 0x02;      /* Manufacturer code for STMicroelectronics */
+  pguid[2] = 0x01;      /* Device type code for STM32 */
 
-  uid_words[0] = HAL_GetUIDw0(); // Words 0 (bits 31:0)
-  uid_words[1] = HAL_GetUIDw1(); // Words 1 (bits 63:32)
-  uid_words[2] = HAL_GetUIDw2(); // Words 2 (bits 95:64)
-  memcpy(uid, uid_words, 12);
+  uid      = HAL_GetUIDw2(); // Words 2 (bits 95:64)
+  pguid[3] = (uid >> 24) & 0xFF;
+  pguid[4] = (uid >> 16) & 0xFF;
+  pguid[5] = (uid >> 8) & 0xFF;
+  pguid[6] = uid & 0xFF;
+
+  uid       = HAL_GetUIDw0(); // Words 0 (bits 31:0)
+  pguid[7]  = (uid >> 24) & 0xFF;
+  pguid[8]  = (uid >> 16) & 0xFF;
+  pguid[9]  = (uid >> 8) & 0xFF;
+  pguid[10] = uid & 0xFF;
+
+  uid       = HAL_GetUIDw1(); // Words 1 (bits 63:32)
+  pguid[11] = (uid >> 24) & 0xFF;
+  pguid[12] = (uid >> 16) & 0xFF;
+  pguid[13] = (uid >> 8) & 0xFF;
+  pguid[14] = uid & 0xFF;
+
+  pguid[15] = 0; // Last byte set to zero
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// setContextDefaults
+//
+
+/*
+  As we only have one channel we can get away with a single global context
+  object, but we define this function to set defaults for it and to reset
+  it between connections if needed.
+*/
+
+void
+setContextDefaults(ctx_t *pctx)
+{
+  memset(pctx, 0, sizeof(ctx_t));
+  pctx->id   = 0;
+  pctx->sock = 0;
+  memset(pctx->user, 0, VSCP_LINK_MAX_USER_NAME_LENGTH);
+  setGUID(pctx->guid);
+  vscp_fifo_init(&pctx->fifoEventsOut, VSCP_LINK_MAX_OUT_FIFO_SIZE);
+  vscp_fifo_init(&pctx->fifoEventsIn, VSCP_LINK_MAX_IN_FIFO_SIZE);
+  pctx->bValidated = 0; // No credentials yet
+  pctx->privLevel  = 0; // No privileges before we are logged in
+  pctx->bRcvLoop   = 0; // Polling mode by default, can switch to RETR after login if desired
+  memset(&pctx->filter, 0, sizeof(vscpEventFilter));       // All events is received by client
+  memset(&pctx->statistics, 0, sizeof(vscp_statistics_t)); // VSCP Statistics
+  memset(&pctx->status, 0, sizeof(vscp_status_t));         // VSCP status
+  pctx->last_rcvloop_time = 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// resetContextDefaults
+//
+
+void
+resetContextDefaults(ctx_t *pctx)
+{
+  pctx->bValidated = 0; // No credentials yet
+  pctx->privLevel  = 0; // No privileges before we are logged in
+  pctx->bRcvLoop   = 0; // Polling mode by default, can switch to RETR after login if desired
+  memset(&pctx->filter, 0, sizeof(vscpEventFilter));       // All events is received by client
+  memset(&pctx->statistics, 0, sizeof(vscp_statistics_t)); // VSCP Statistics
+  memset(&pctx->status, 0, sizeof(vscp_status_t));         // VSCP status
+  pctx->last_rcvloop_time = 0;
+
+  // Drain the fifos
+  vscp_fifo_clear(&pctx->fifoEventsOut);
+  vscp_fifo_clear(&pctx->fifoEventsIn);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// goCommandMode
+//
+
+int
+goCommandMode(void)
+{
+  size_t rx_len;
+  char buf[80];
+
+  // Enter command mode: guard time, "+++", guard time
+  HAL_Delay(500);
+  HAL_UART_Transmit(&huart1, (uint8_t *) "+++", 3, HAL_MAX_DELAY);
+  HAL_Delay(500);
+  rx_len = getWizIp20Response(buf, sizeof(buf), 1000);
+  return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// sendCommand
+//
+int
+sendCommand(const char *cmd, char *response_buf, size_t response_buf_size, uint16_t timeout_ms)
+{
+  HAL_UART_Transmit(&huart1, (uint8_t *) cmd, strlen(cmd), HAL_MAX_DELAY);
+  return getWizIp20Response(response_buf, response_buf_size, timeout_ms);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// validate_user
+//
+int
+validate_user(const char *user, const char *password)
+{
+  // For demonstration purposes, we accept a single hardcoded username/password.
+  // In a real implementation, you should check against securely stored credentials.
+  const char *valid_user     = "vscp";
+  const char *valid_password = "secret";
+
+  return (strcmp(user, valid_user) == 0) && (strcmp(password, valid_password) == 0);
 }
 
 /* USER CODE END 0 */
@@ -447,6 +674,7 @@ main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   MX_TIM2_Init();
+  MX_TIM3_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
@@ -454,6 +682,14 @@ main(void)
   if (HAL_TIM_Base_Start_IT(&htim2) != HAL_OK) {
     Error_Handler();
   }
+
+  /* Start TIM3 — free-running 1 µs counter, overflow interrupt for 32-bit extension */
+  if (HAL_TIM_Base_Start_IT(&htim3) != HAL_OK) {
+    Error_Handler();
+  }
+
+  // Initialize context for client connections
+  // setContextDefaults(&ctx[0]);
 
   // Debug print to indicate that the program has started
   printf("STM32F103 Wiznet IP20 VSCP blink demo starting\r\n");
@@ -468,9 +704,10 @@ main(void)
   rx_len = getWizIp20Response(buf, sizeof(buf), 10);
 
   // Enter AT command mode: guard time, "+++", guard time
-  HAL_Delay(500);
-  HAL_UART_Transmit(&huart1, (uint8_t *) "+++", 3, HAL_MAX_DELAY);
-  HAL_Delay(500);
+  // HAL_Delay(500);
+  // HAL_UART_Transmit(&huart1, (uint8_t *) "+++", 3, HAL_MAX_DELAY);
+  // HAL_Delay(500);
+  goCommandMode();
 
   rx_len = getWizIp20Response(buf, sizeof(buf), 1000);
 

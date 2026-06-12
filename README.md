@@ -1,5 +1,5 @@
 # vscp-demo-stm32f103-wiz-ip20-blink
-VSCP blink demo for STM32F103C8T6 "Blue Pill" with WIZnet W5500 Ethernet module. The firmware is built with CMake and STM32CubeMX-generated code, using the GNU Arm Embedded Toolchain. It demonstrates basic GPIO control for blinking an LED and sets up the W5500 for network connectivity. 
+[VSCP blinky demo](https://github.com/grodansparadis/vscp-firmware/wiki) for STM32F103C8T6 "Blue Pill" with [WIZnet IP20 module](https://wiznet.io/products/serial-to-ethernet-modules/wiz-ip20). The firmware is built with CMake and STM32CubeMX-generated code, using the GNU Arm Embedded Toolchain. It demonstrates basic GPIO control for blinking an LED and configures and sets up network connectivity. 
 
 VSCP blink is the simplest possible VSCP application, toggling an LED on and off at a configurable interval. This project serves as a starting point for developing more complex VSCP applications on STM32 microcontrollers with (Ethernet) connectivity. The VSCP blink demo is designed to be simple and easy to understand, making it ideal for learning how to use the VSCP protocol and develop applications for embedded systems. It is implemented on different platforms, including STM32 microcontrollers, and can be used as a reference for building your own VSCP applications.
 
@@ -11,6 +11,11 @@ VSCP blink is the simplest possible VSCP application, toggling an LED on and off
 - [W55RP20-S2E Command Manual](https://docs.wiznet.io/Product/Chip/MCU/Pre-programmed-MCU/W55RP20-S2E/command-manual-en)
 - [WIZ-IP20 Product Page](https://wiznet.io/products/serial-to-ethernet-modules/wiz-ip20)
 - [WIZnet S2E Tool GUI Getting Started Guide](https://github.com/Wiznet/WIZnet-S2E-Tool-GUI/wiki/Getting-started-guide_en)
+
+### Resources
+
+* TIM2 is used as a millisecond timebase.
+* TIM3 is used as a 1 µs free-running counter, extended to 32 bits via software overflow.
 
 ## Persistent Flash Storage
 
@@ -64,7 +69,6 @@ flash_storage_read(0, buf, 2);
 Go to the firmware directory
 
 ```bash
-
 cmake -B build \
   -DCMAKE_TOOLCHAIN_FILE=cmake/gcc-arm-none-eabi.cmake \
   -DCMAKE_BUILD_TYPE=Debug

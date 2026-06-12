@@ -40,14 +40,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-// #include <freertos/FreeRTOS.h>
-// #include <freertos/task.h>
-// #include <freertos/queue.h>
-// #include "freertos/semphr.h"
-// #include <freertos/event_groups.h>
-
-#include <esp_timer.h>
-#include <lwip/sockets.h>
+#include "tim.h"
+#include "usart.h"
 
 #include "vscp-compiler.h"
 #include "vscp-projdefs.h"
@@ -55,14 +49,15 @@
 #include <vscp-fifo.h>
 
 #include "main.h"
+#include "blinky.h"
 #include "regdefs.h"
-#include "tcpsrv.h"
+
 
 // Defines from demo.c
 
 extern uint8_t device_guid[16];
 extern vscp_fifo_t fifoEventsIn;
-extern ctx_t gctx[MAX_TCP_CONNECTIONS];
+extern ctx_t gctx[BLINKY_MAX_TCP_CONNECTIONS];
 extern struct _eeprom_ eeprom;
 
 // ****************************************************************************
@@ -80,7 +75,7 @@ vscp_frmw2_callback_get_ms(void* const puserdata, uint32_t *ptime)
     return VSCP_ERROR_INVALID_POINTER;
   }
 
-  *ptime = getMilliSeconds();
+  *ptime = HAL_GetTick();
   return VSCP_ERROR_SUCCESS;
 }
 
@@ -151,6 +146,7 @@ vscp_frmw2_callback_read_user_reg(void* const puserdata, uint32_t reg, uint8_t *
   else if (REG_DEVICE_SUBZONE == reg) {
     *pval = 0; // TODO  eeprom_read(&eeprom, REG_DEVICE_SUBZONE);
   }
+  /*
   else if (REG_LED_CTRL == reg) {
     *pval = 0; // TODO  eeprom_read(&eeprom, REG_LED_CTRL);
   }
@@ -174,12 +170,12 @@ vscp_frmw2_callback_read_user_reg(void* const puserdata, uint32_t reg, uint8_t *
     *pval = 0; // TODO  eeprom_read(&eeprom, REG_TEMP_CTRL);
   }
   else if (REG_TEMP_RAW_MSB == reg) {
-    //float temp = read_onboard_temperature();
-    //*pval      = (((uint16_t) (100 * temp)) >> 8) & 0xff;
+    float temp = read_onboard_temperature();
+    *pval      = (((uint16_t) (100 * temp)) >> 8) & 0xff;
   }
   else if (REG_TEMP_RAW_LSB == reg) {
-    //float temp = read_onboard_temperature();
-    //*pval      = ((uint16_t) (100 * temp)) & 0xff;
+    float temp = read_onboard_temperature();
+    *pval      = ((uint16_t) (100 * temp)) & 0xff;
   }
   else if (REG_TEMP_CORR_MSB == reg) {
     *pval = 0; // TODO  eeprom_read(&eeprom, REG_TEMP_CORR_MSB);
@@ -229,6 +225,7 @@ vscp_frmw2_callback_read_user_reg(void* const puserdata, uint32_t reg, uint8_t *
     // pico_get_unique_board_id(&boardid);
     // *pval = boardid.id[reg - REG_BOARD_ID0];
   }
+    */
   else {
     // Invalid register
     return VSCP_ERROR_PARAMETER;
@@ -250,6 +247,7 @@ vscp_frmw2_callback_write_user_reg(void* const puserdata, uint32_t reg, uint8_t 
   else if (REG_DEVICE_SUBZONE == reg) {
     // TODO eeprom_write(&eeprom, REG_DEVICE_SUBZONE, val);
   }
+  /*
   else if (REG_LED_CTRL == reg) {
     // TODO eeprom_write(&eeprom, REG_LED_CTRL, val);
   }
@@ -292,7 +290,7 @@ vscp_frmw2_callback_write_user_reg(void* const puserdata, uint32_t reg, uint8_t 
   }
   else if (REG_ADC2_CTRL == reg) {
     // TODO eeprom_write(&eeprom, REG_ADC2_CTRL, val);
-  }
+  }*/
   else {
     return VSCP_ERROR_PARAMETER;
   }
@@ -350,7 +348,7 @@ vscp_frmw2_callback_report_events_of_interest(void* const puserdata)
 uint64_t
 vscp_frmw2_callback_get_timestamp(void* const puserdata)
 {
-  return esp_timer_get_time();
+  return usec_now();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -370,7 +368,7 @@ vscp_frmw2_callback_get_time(void* const puserdata, const vscp_event_ex_t *pex)
 int
 vscp_frmw2_callback_send_event_ex(void *const puserdata, vscp_event_ex_t *pex)
 {
-  for (int i = 0; i < MAX_TCP_CONNECTIONS; i++) {
+  for (int i = 0; i < BLINKY_MAX_TCP_CONNECTIONS; i++) {
 
     // // Only if user is validated
     // if (gctx[i].bValidated) {
@@ -404,7 +402,7 @@ vscp_frmw2_callback_send_event_ex(void *const puserdata, vscp_event_ex_t *pex)
 int
 vscp_frmw2_callback_send_eventEx(void* const puserdata, vscp_event_ex_t *pex)
 {
-  for (int i = 0; i < MAX_TCP_CONNECTIONS; i++) {
+  for (int i = 0; i < BLINKY_MAX_TCP_CONNECTIONS; i++) {
     // // Only if user is validated
     // if (gctx[i].bValidated) {
     //   vscp_event_t *pnew = vscp_fwhlp_mkEventCopy(pex);

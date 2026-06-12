@@ -48,11 +48,22 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/flash_storage.c
     ${CMAKE_CURRENT_SOURCE_DIR}/callbacks-link.c
     ${CMAKE_CURRENT_SOURCE_DIR}/callbacks-vscp-protocol.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/callbacks-link.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-fifo.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-aes.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-fifo.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-crc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-firmware-helper.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-link-protocol.c    
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-firmware-level2.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/vscp-binary-protocol.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+    ${CMAKE_CURRENT_SOURCE_DIR}/
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/vscp-firmware/common/
 )
 
 # Add project symbols (macros)
@@ -69,6 +80,12 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
     # Add user defined libraries
 )
+
+# Optimize for size and enable LTO for non-Debug builds
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Os -flto)
+    target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -flto)
+endif()
 
 # Post-build: generate .hex and .bin from .elf
 add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD

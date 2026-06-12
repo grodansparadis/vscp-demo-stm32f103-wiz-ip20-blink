@@ -725,7 +725,7 @@ vscp_binary_callback_send_event(const void *pdata, const vscp_event_t *pev)
   }
 
   // Write to send buffer of other interfaces
-  for (int i = 0; i < MAX_TCP_CONNECTIONS; i++) {
+  for (int i = 0; i < BLINKY_MAX_TCP_CONNECTIONS; i++) {
     // if (pctx->sock != i) {
     //   vscp_event_ex_t *pnew = vscp_fwhlp_mkEventCopy(pex);
     //   if (NULL == pnew) {

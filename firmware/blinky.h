@@ -37,7 +37,7 @@
 #include <vscp-firmware-level2.h>
 
 // Buffer
-#define TCPIP_BUF_MAX_SIZE (1024)
+#define TCPIP_BUF_MAX_SIZE (2048u)
 
 /**
  * VSCP TCP link protocol character buffer size
@@ -56,40 +56,72 @@
  */
 #define TRANSMIT_FIFO_SIZE 16
 
+#define TCPSRV_WELCOME_MSG                                                                                             \
+  "Welcome to the VSCP CAN4VSCP Gateway\r\n"                                                                           \
+  "Copyright (C) 2000-2026 Grodans Paradis AB\r\n"                                                                     \
+  "https://www.grodansparadis.com\r\n"                                                                                 \
+  "+OK\r\n"
+
+// System defaults
+
+#define DEFAULT_NODE_NAME        "VSCP CAN4VSCP Gateway"
+#define DEFAULT_ENCRYPTION_LEVEL VSCP_ENCRYPTION_NONE // 0 = none, 1 = AES128, 2 = AES192, 3 = AES256
+#define DEFAULT_MODULE_ZONE      0                    // VSCP zone for module
+#define DEFAULT_MODULE_SUBZONE   0                    // VSCP subzone for module
+
+#define DEFAULT_VSCP_LINK_PORT     9598
+#define DEFAULT_VSCP_LINK_USER     "vscp"
+#define DEFAULT_VSCP_LINK_PASSWORD "secret"
+
+typedef struct {
+
+  // Module
+  char nodeName[32];   // User name for node
+  uint8_t nodeZone;    // VSCP zone for node
+  uint8_t nodeSubzone; // VSCP subzone for node
+  uint8_t guid[16];    // GUID for node (default: Constructed from MAC address)
+  uint8_t encryptLvl;  // Encryption level for UDP messages (0 = none, 1 = AES128, 2 = AES192, 3 = AES256)
+  uint8_t pmk[16];     // System security key for encryption (AES128)
+  uint8_t pmkLen;      // For future use, Now always 16 (AES128)
+  uint32_t bootCnt;    // Number of restarts (not editable)
+
+  // VSCP link protocol
+  uint16_t vscplinkPort;                             // VSCP link protocol port
+  char vscplinkUser[VSCP_LINK_MAX_USER_NAME_LENGTH]; // VSCP link protocol user
+  char vscplinkPw[VSCP_LINK_MAX_PASSWORD_LENGTH];    // VSCP link protocol password
+
+} node_persistent_config_t;
+
 /*
   Socket context
   This is the context for each open socket/channel.
+  Here there is only one possible channel open at the
+  same time, but in a more complex implementation there could be
+  multiple channels
 */
 typedef struct _ctx {
-  int id;
-  int sock;                                  // Socket
-  size_t size;                               // Number of characters in buffer
-  char buf[TCPIP_BUF_MAX_SIZE];              // Command Buffer
+  int id;           // Context ID (index in context array) Here always zero
+  int sock;         // Socket (here always zero)
+  int binary;       // Binary mode if non zero, text mode if zero
+  uint8_t guid[16]; // GUID for client (copied from node GUID, can be used to track which client is which if multiple
+                    // clients are supported)
   char user[VSCP_LINK_MAX_USER_NAME_LENGTH]; // Username storage
-  // vscp_fifo_t fifoEventsOut;                  // VSCP event send fifo
-  // QueueHandle_t xmsg_Out;
-  int bValidated;               // User is validated
-  uint8_t privLevel;            // User privilege level 0-15
-  int bRcvLoop;                 // Receive loop is enabled if non zero
-  vscpEventFilter filter;       // Filter for events
-  vscp_statistics_t statistics; // VSCP Statistics
-  vscp_status_t status;         // VSCP status
-  uint32_t last_rcvloop_time;   // Time of last received event
+  vscp_fifo_t fifoEventsIn;                  // VSCP event receive fifo
+  vscp_fifo_t fifoEventsOut;                 // VSCP event send fifo
+  unsigned  bValidated : 1;                            // User is validated
+  unsigned  bRcvLoop : 1;                              // Receive loop is enabled if non zero
+  uint8_t privLevel;                         // User privilege level 0-15
+  vscpEventFilter filter;                    // Filter for events sent to client
+  vscp_statistics_t statistics;              // VSCP Statistics
+  vscp_status_t status;                      // VSCP status
+  uint32_t last_rcvloop_time;                // Time in milliseconds of last received event
 } ctx_t;
 
-typedef struct {
-  uint8_t node_persistent_config;
-  // Add other configuration fields as needed
-} node_persistent_config_t;
-
+// Message for connection when max number of clients is reached
 #define MSG_MAX_CLIENTS "Max number of clients reached. Disconnecting.\r\n"
 
-/**
- * @brief Set defaults for the Context Defaults object
- *
- * @param pctx Pointer to context
- */
-void
-setContextDefaults(ctx_t *pctx);
+// This string can be  displayed when the user types "HELP" or "?" in the command
+// line interface if the standard help text takes to much resources.
+#define BLINKY_HELP "See https://grodansparadis.github.io/vscp-doc-spec/#/./vscp_tcpiplink for help\r\n"
 
 #endif

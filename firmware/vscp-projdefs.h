@@ -7,110 +7,125 @@
 #ifndef _VSCP_PROJDEFS_H_
 #define _VSCP_PROJDEFS_H_
 
-/*
-  Demo related projdefs
+/**
+  ----------------------------------------------------------------------------
+                             Blinky
+  ----------------------------------------------------------------------------
 */
-#define IDLE_OTHER_CORE   idle_other_core
-#define RESUME_OTHER_CORE resume_other_core
 
-/*!
-  Max buffer for level II events. The buffer size is needed to
-  convert an event to string. To handle all level II events
-  512*5 + 110 = 2670 bytes is needed. In reality this is
-  seldom needed so the value can be set to a lower value. In this
-  case one should check the max data size for events that are of
-  interest and set the max size accordingly
+// Uncomment to get debug printouts on USART2
+#define VSCP_ENABLE_BLINKY_DEBUG
+
+/**
+ * Maximum number of simultaneous TCP/IP connections
+ * This is the maximum simultaneous number
+ * of connections to the server
+ */
+#define BLINKY_MAX_TCP_CONNECTIONS 1
+
+/**
+  ----------------------------------------------------------------------------
+                        VSCP firmware helper defines
+  ----------------------------------------------------------------------------
+  Defines for firmware helper. These are used to link in support for
+  features in the firmware helper. If you do not need support for a feature,
+  you can save some memory by not linking it in.
 */
-#define VSCP_LINK_MAX_BUF (2680)
+
+// We link in binary support from firmware helper.
+#define VSCP_FWHLP_BINARY_FRAME_SUPPORT
+
+// We link in crypto support from firmware helper.
+#define VSCP_FWHLP_CRYPTO_SUPPORT
+
+// Crypto support is needed for the TCP/IP link protocol
+#define VSCP_FWHLP_CRYPTO_SUPPORT
+
+// SSL support is needed for crypto support
+//#define VSCP_FWHLP_CRYPTO_USE_OPENSSL
+
+// ON ESP32 we use the built in crypto support
+//#define VSCP_FWHLP_CRYPTO_USE_PSA_CRYPTO
+
+// Enable JSON support in firmware helper. 
+//#define VSCP_FWHLP_JSON_SUPPORT
+
+// Enable XML support in firmware helper.
+//#define VSCP_FWHLP_XML_SUPPORT
+
+/**
+  ----------------------------------------------------------------------------
+                       VSCP Link Protocol defines
+  ----------------------------------------------------------------------------
+*/
 
 /*!
   Define to show custom help. The callback is called so you can respond
   with your custom help text.  This can be used to save memory if you work
-  on a constraint environment.
+  on a memory constraint environment.
 
-  If zero standard help is shown.
+  If not defined, standard help is shown.
 */
 // #define VSCP_LINK_CUSTOM_HELP_TEXT
 
-/**
- * Undefine to send incoming events to all clients (default).
- */
-#define VSCP_LINK_SEND_TO_ALL
-
 /*!
-  Size for inout buffer and outputbuffer.
+  Size for input buffer and outputbuffer for events.
   Must be at least one for each fifo
 */
-#define VSCP_LINK_MAX_IN_FIFO_SIZE  (10)
-#define VSCP_LINK_MAX_OUT_FIFO_SIZE (10)
+#define VSCP_LINK_MAX_IN_FIFO_SIZE  (16u)
+#define VSCP_LINK_MAX_OUT_FIFO_SIZE (16u)
 
-/**
- * Enable command also when rcvloop is active
- * Only 'quit' and 'quitloop' will work if
- * set to zero.
- */
-#define VSCP_LINK_ENABLE_RCVLOOP_CMD (1)
 
 /**
   ----------------------------------------------------------------------------
-                              VSCP TCP/IP Link
+                       VSCP Firmware level II defines
   ----------------------------------------------------------------------------
   Defines for firmware level II
 */
 
 /*!
   Name of device for level II capabilities announcement event.
+  Max 32 characters.
 */
-#define THIS_FIRMWARE_DEVICE_NAME "VSCP blinky tcp STM32F103 + Wiznet IP20"
-
-/**
- * If defined an UDP heartbeat is broadcasted every minute.
- */
-//#define THIS_FIRMWARE_USE_UDP_ANNOUNCE
-
-/**
- * If defined a multicast heartbeat is broadcasted every minute.
- */
-//#define THIS_FIRMWARE_USE_MULTICAST_ANNOUNCE
+#define THIS_FIRMWARE_DEVICE_NAME "VSCP blinky tcp/ip link demo"
 
 /**
  * Firmware version
  */
-
-#define THIS_FIRMWARE_MAJOR_VERSION   (0)
-#define THIS_FIRMWARE_MINOR_VERSION   (0)
-#define THIS_FIRMWARE_RELEASE_VERSION (1)
-#define THIS_FIRMWARE_BUILD_VERSION   (0)
+#define THIS_FIRMWARE_MAJOR_VERSION   (0u)
+#define THIS_FIRMWARE_MINOR_VERSION   (0u)
+#define THIS_FIRMWARE_RELEASE_VERSION (1u)
+#define THIS_FIRMWARE_BUILD_VERSION   (0u)
 
 /**
  * User id (this is only defaults)
  */
-#define THIS_FIRMWARE_USER_ID0 (0)
-#define THIS_FIRMWARE_USER_ID1 (0)
-#define THIS_FIRMWARE_USER_ID2 (0)
-#define THIS_FIRMWARE_USER_ID3 (0)
-#define THIS_FIRMWARE_USER_ID4 (0)
+#define THIS_FIRMWARE_USER_ID0 (1u)
+#define THIS_FIRMWARE_USER_ID1 (2u)
+#define THIS_FIRMWARE_USER_ID2 (3u)
+#define THIS_FIRMWARE_USER_ID3 (4u)
+#define THIS_FIRMWARE_USER_ID4 (5u)
 
 /**
  * Manufacturer id
  */
-#define THIS_FIRMWARE_MANUFACTURER_ID0 (0)
-#define THIS_FIRMWARE_MANUFACTURER_ID1 (0)
-#define THIS_FIRMWARE_MANUFACTURER_ID2 (0)
-#define THIS_FIRMWARE_MANUFACTURER_ID3 (0)
+#define THIS_FIRMWARE_MANUFACTURER_ID0 (11u)
+#define THIS_FIRMWARE_MANUFACTURER_ID1 (22u)
+#define THIS_FIRMWARE_MANUFACTURER_ID2 (33u)
+#define THIS_FIRMWARE_MANUFACTURER_ID3 (44u)
 
 /**
  * Manufacturer subid
  */
-#define THIS_FIRMWARE_MANUFACTURER_SUBID0 (0)
-#define THIS_FIRMWARE_MANUFACTURER_SUBID1 (0)
-#define THIS_FIRMWARE_MANUFACTURER_SUBID2 (0)
-#define THIS_FIRMWARE_MANUFACTURER_SUBID3 (0)
+#define THIS_FIRMWARE_MANUFACTURER_SUBID0 (55u)
+#define THIS_FIRMWARE_MANUFACTURER_SUBID1 (66u)
+#define THIS_FIRMWARE_MANUFACTURER_SUBID2 (77u)
+#define THIS_FIRMWARE_MANUFACTURER_SUBID3 (88u)
 
 /**
  * Set bootloader algorithm
  */
-#define THIS_FIRMWARE_BOOTLOADER_ALGORITHM (0)
+#define THIS_FIRMWARE_BOOTLOADER_ALGORITHM (0u)
 
 /**
  * Device family code 32-bit
@@ -125,12 +140,12 @@
 /**
   Interval for heartbeats in seconds
 */
-#define THIS_FIRMWARE_INTERVAL_HEARTBEATS (60)
+#define THIS_FIRMWARE_INTERVAL_HEARTBEATS (60u)
 
 /**
  * Interval for capabilities report in seconds
  */
-#define THIS_FIRMWARE_INTERVAL_CAPS (60)
+#define THIS_FIRMWARE_INTERVAL_CAPS (60u)
 
 /**
  * Buffer size
@@ -167,9 +182,9 @@
   { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, 0x00, 0x08, 0xdc, 0x12, 0x34, 0x56, 0x00, 0x01 }
 
 /**
- * URL to MDF file
+ * URL to MDF file (max 32 bytes
  */
-#define THIS_FIRMWARE_MDF_URL "eurosource.se/wcang0.mdf"
+#define THIS_FIRMWARE_MDF_URL "eurosource.se/blinky0.mdf"
 
 /**
  * 16-bit firmware code for this device
@@ -186,42 +201,11 @@
  */
 #define THIS_FIRMWARE_FAMILY_TYPE (0)
 
-/**
- * @brief Maximum number of simultanonus TCP/IP connections
- * This is the maximum simultaneous number
- * of connections to the server
- */
-#define MAX_TCP_CONNECTIONS 2
 
-/// TODO !!!!!!!!!
-#define THIS_FIRMWARE_TCPIP_LINK_MAX_BUFFER         2048
+
+/// Buffer size for incoming TCP/IP data (not used here)
+#define THIS_FIRMWARE_TCPIP_LINK_MAX_BUFFER         2048u
 #define THIS_FIRMWARE_TCPIP_LINK_ENABLE_RCVLOOP_CMD 1
 
-// Firmware helper functionality switches
-#define VSCP_FWHLP_JSON_SUPPORT
-#define VSCP_FWHLP_XML_SUPPORT
-#define VSCP_FWHLP_BINARY_SUPPORT
-#define VSCP_FWHLP_CRYPTO_SUPPORT
-#define VSCP_FWHLP_UDP_FRAME_SUPPORT
-#define VSCP_FWHLP_BINARY_FRAME_SUPPORT
-
-// Crypto backend selection for encryption/decryption
-// PSA (Platform Security Architecture) crypto is only supported on ESP32 hardware
-// when building with ESP-IDF. For other platforms, AES backend is used.
-//
-// On ESP32:
-// 0 = Use AES (default from vscp-aes.h)
-// 1 = Use PSA (Platform Security Architecture) crypto
-//
-// On non-ESP32 platforms, this setting is ignored and AES backend is always used.
-#ifdef ESP_PLATFORM
-  #define VSCP_FWHLP_CRYPTO_USE_PSA_CRYPTO 1
-#else
-  #define VSCP_FWHLP_CRYPTO_USE_PSA_CRYPTO 0
-#endif
-
-// ws1 protocol related defines
-#define VSCP_WS1_DISABLE_USER_FULL_NAME // saves 32 bytes
-#define VSCP_WS1_DISABLE_USER_NOTES     // saves 256 bytes
 
 #endif // _VSCP_PROJDEFS_H_
