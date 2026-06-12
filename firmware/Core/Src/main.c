@@ -54,6 +54,49 @@ typedef enum {
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+// ** Check so one and only one build type is enabled **
+
+/* Convert each define to 0 or 1 */
+#ifdef BLINKY_MODE_TCP_SERVER
+  #define _MODE_TCP_SERVER 1
+#else
+  #define _MODE_TCP_SERVER 0
+#endif
+
+#ifdef BLINKY_DEMO_MODE_TCP_CLIENT
+  #define _OPT_MODE_TCP_CLIENT 1
+#else
+  #define _OPT_MODE_TCP_CLIENT 0
+#endif
+
+#ifdef BLINKY_DEMO_MODE_UDP
+  #define _OPT_MODE_UDP 1
+#else
+  #define _OPT_MODE_UDP 0
+#endif
+
+#ifdef BLINKY_DEMO_MODE_MULTICAST
+  #define _OPT_MODE_MULTICAST 1
+#else
+  #define _OPT_MODE_MULTICAST 0
+#endif
+
+#ifdef BLINKY_DEMO_MODE_MQTT
+  #define _OPT_MODE_MQTT 1
+#else
+  #define _OPT_MODE_MQTT 0
+#endif
+
+#define _OPT_COUNT (_MODE_TCP_SERVER + _OPT_MODE_TCP_CLIENT + _OPT_MODE_UDP + _OPT_MODE_MULTICAST + _OPT_MODE_MQTT)
+
+#if _OPT_COUNT > 1
+  #error "Only one of BLINKY_MODE_TCP_SERVER/BLINKY_DEMO_MODE_TCP_CLIENT/BLINKY_DEMO_MODE_UDP/BLINKY_DEMO_MODE_MULTICAST/BLINKY_DEMO_MODE_MQTT may be defined at a time"
+#endif
+
+#if _OPT_COUNT != 1
+  #error "Exactly one of BLINKY_MODE_TCP_SERVER/BLINKY_DEMO_MODE_TCP_CLIENT/BLINKY_DEMO_MODE_UDP/BLINKY_DEMO_MODE_MULTICAST/BLINKY_DEMO_MODE_MQTT must be defined"
+#endif
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
